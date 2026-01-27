@@ -19,14 +19,35 @@ Turn your Raspberry Pi into a Bitcoin solo miner with remote Telegram control an
 - Reliable internet connection
 - MicroSD card (32GB+)
 
-## Quick Install
+## Installation
+
+### Option 1: Pre-built Image (Recommended)
+
+Download the pre-configured image and flash it to your SD card:
+
+1. **Download** the latest image from [Releases](https://github.com/micheldegeofroy/BtcLotoVpn/releases)
+2. **Flash** to SD card using [Raspberry Pi Imager](https://www.raspberrypi.com/software/):
+   - Click "Choose OS" → "Use custom" → Select the downloaded `.img.gz`
+   - Click "Choose Storage" → Select your SD card
+   - Click "Write"
+3. **Boot** your Pi with the 1TB external HDD connected
+4. **SSH** in: `ssh satoshi@<pi-ip>` (password: `nakamoto`)
+5. **Configure**: Run `sudo btcconfig`
+
+> **Default credentials:** `satoshi` / `nakamoto` — Change after first login!
+
+### Option 2: Fresh Install
+
+Install on existing Raspberry Pi OS:
 
 ```bash
-# Clone the repo
+curl -sSL https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/main/install.sh | sudo bash
+```
+
+Or clone and run:
+```bash
 git clone https://github.com/micheldegeofroy/BtcLotoVpn.git
 cd BtcLotoVpn
-
-# Run install script
 sudo bash install.sh
 ```
 
