@@ -107,9 +107,17 @@ Use `/help` for the full command list.
 
 MIT License - See [LICENSE](LICENSE) for details.
 
-## Disclaimer
+## Why Solo Mine?
 
-Solo mining Bitcoin with a Raspberry Pi is unlikely to be profitable. This project is for educational purposes and the joy of participating in the Bitcoin network.
+Solo mining Bitcoin with a Raspberry Pi is unlikely to be profitable — but it's a numbers game, and if the universe wills it, you could hit the jackpot.
+
+More importantly:
+
+- **Decentralization** — Running a full node strengthens the resilience of the Bitcoin network
+- **Privacy** — Our privacy is constantly under attack; VPNs give you more freedom and access to information your government may want to censor
+- **Education** — Learn how Bitcoin actually works at the protocol level
+
+This project is for the joy of participating in the Bitcoin network and hopes to help make the world a little more free.
 
 ---
 
