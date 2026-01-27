@@ -1,0 +1,34 @@
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║   ██████╗ ████████╗ ██████╗ ██╗      ██████╗ ████████╗ ██████╗        ║
+║   ██╔══██╗╚══██╔══╝██╔════╝ ██║     ██╔═══██╗╚══██╔══╝██╔═══██╗       ║
+║   ██████╔╝   ██║   ██║      ██║     ██║   ██║   ██║   ██║   ██║       ║
+║   ██╔══██╗   ██║   ██║      ██║     ██║   ██║   ██║   ██║   ██║       ║
+║   ██████╔╝   ██║   ╚██████╗ ███████╗╚██████╔╝   ██║   ╚██████╔╝       ║
+║   ╚═════╝    ╚═╝    ╚═════╝ ╚══════╝ ╚═════╝    ╚═╝    ╚═════╝        ║
+║                      Bitcoin Solo Miner v3.0                          ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+  Commands:
+    sudo btcconfig    - Configuration Wizard
+    sudo btcsettings  - Settings
+    sudo vpnconfig    - VPN Configuration
+
+  Before running the wizard, have ready:
+    - Bitcoin wallet address (public receiving address)
+    - Telegram Bot Token (create at @BotFather)
+    - Telegram Chat ID (get from @userinfobot)
+    - Blockonomics.com API key (for balance alerts)
+    - Choose and configure your VPN if needed
+
+  Mysterium VPN Provider:
+    Web UI:  ssh -L 4449:localhost:4050 satoshi@<THIS_IP>
+             then open http://localhost:4449
+    Online:  https://mystnodes.com
+
+  Coming Soon:
+    - VPN WiFi Hotspot
+    - Harddrive Expansion for Blockchain
+    - Automatic Updates
+    - Custom ISO
+    - Alarm Clock Casing with power supply
