@@ -290,6 +290,26 @@ case "$HOTSPOT_VPN" in
             iptables -t nat -A POSTROUTING -s "${HOTSPOT_GATEWAY%.*}.0/24" -o "$UPLINK" -j MASQUERADE
         fi
         ;;
+    wireguard)
+        log "Configuring WireGuard routing..."
+        # Start WireGuard if not running
+        if ! ip link show wg0 &>/dev/null; then
+            log "Starting WireGuard..."
+            wg-quick up wg0 2>/dev/null || systemctl start wg-quick@wg0 2>/dev/null || true
+            sleep 3
+        fi
+        # NAT through wg0 interface
+        if ip link show wg0 &>/dev/null; then
+            sysctl -w net.ipv4.conf.all.rp_filter=0 >/dev/null
+            sysctl -w net.ipv4.conf.wg0.rp_filter=0 >/dev/null
+            iptables -t nat -A POSTROUTING -s "${HOTSPOT_GATEWAY%.*}.0/24" -o wg0 -j MASQUERADE
+            iptables -A FORWARD -i "$AP_INTERFACE" -o wg0 -j ACCEPT
+            iptables -A FORWARD -i wg0 -o "$AP_INTERFACE" -m state --state RELATED,ESTABLISHED -j ACCEPT
+        else
+            log "WARNING: wg0 interface not found, falling back to direct NAT"
+            iptables -t nat -A POSTROUTING -s "${HOTSPOT_GATEWAY%.*}.0/24" -o "$UPLINK" -j MASQUERADE
+        fi
+        ;;
     none|*)
         log "Configuring direct NAT (no VPN)..."
         # Direct NAT through uplink interface
