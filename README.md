@@ -249,6 +249,7 @@ Your Phone/Laptop
 | `outline` | Shadowsocks | Looks like random traffic |
 | `xray` | VLESS/TCP/TLS | Looks like HTTPS |
 | `openvpn` | OpenVPN | Traditional VPN |
+| `wireguard` | WireGuard | Fast, modern kernel VPN |
 
 ### Quick Setup
 ```bash
