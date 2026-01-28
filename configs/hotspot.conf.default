@@ -1,0 +1,26 @@
+# BTCLOTO WiFi Hotspot Configuration
+# This file is sourced by hotspot-start.sh and hotspot-stop.sh
+# Edit via Telegram bot or copy to /etc/btcloto/hotspot.conf
+
+# WiFi SSID (network name)
+HOTSPOT_SSID="BTCLOTO-VPN"
+
+# WiFi Password (minimum 8 characters)
+HOTSPOT_PASSWORD="btclotovpn"
+
+# WiFi Channel (1-11, avoid crowded channels)
+HOTSPOT_CHANNEL="6"
+
+# Gateway IP address (this device's IP on the hotspot network)
+HOTSPOT_GATEWAY="192.168.50.1"
+
+# DHCP range for connected clients
+HOTSPOT_DHCP_START="192.168.50.10"
+HOTSPOT_DHCP_END="192.168.50.100"
+
+# VPN to route traffic through
+# Options: none, tor, hysteria, outline, xray, openvpn
+HOTSPOT_VPN="none"
+
+# AP Interface (usually wlan0 on Raspberry Pi)
+AP_INTERFACE="wlan0"

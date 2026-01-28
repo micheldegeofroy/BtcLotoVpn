@@ -1,0 +1,25 @@
+# hostapd configuration template for BTCLOTO WiFi Hotspot
+# This file is generated automatically - do not edit directly
+# Use /hotspotssid and /hotspotpass to configure
+
+interface=${AP_INTERFACE}
+driver=nl80211
+ssid=${HOTSPOT_SSID}
+hw_mode=g
+channel=${HOTSPOT_CHANNEL}
+wmm_enabled=0
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_passphrase=${HOTSPOT_PASSWORD}
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
+
+# Optional: Country code for regulatory domain
+# country_code=US
+
+# Optional: 802.11n support (Pi 4 supports it)
+# ieee80211n=1
+# ht_capab=[HT40][SHORT-GI-20][DSSS_CCK-40]

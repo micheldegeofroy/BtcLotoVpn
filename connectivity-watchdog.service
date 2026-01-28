@@ -1,0 +1,7 @@
+[Unit]
+Description=Connectivity Watchdog - Auto-recover from network issues
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/connectivity-watchdog.sh

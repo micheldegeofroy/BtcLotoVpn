@@ -1,0 +1,15 @@
+# Hysteria2 Client Config Template
+# Upload via Telegram: /hysconfig
+# Or edit: /etc/hysteria/config.yaml
+
+server: YOUR_SERVER:443
+auth: YOUR_AUTH_KEY
+
+tls:
+  insecure: true  # Set to false if using valid certificate
+
+socks5:
+  listen: 127.0.0.1:1080
+
+http:
+  listen: 127.0.0.1:8080

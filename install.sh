@@ -1,10 +1,27 @@
 #!/bin/bash
 set -e  # Exit on error
 # ###############################
-# BtcLotoVpn Install Script
-# Bitcoin Solo Miner + VPN for Raspberry Pi 4
-# https://github.com/micheldegeofroy/BtcLotoVpn
+# Execute basic install
 # ###############################
+
+# GitHub token for private repo access
+# Generate at: https://github.com/settings/tokens (needs 'repo' scope)
+# Set before running: export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+
+if [ -z "$GITHUB_TOKEN" ]; then
+    echo "ERROR: GITHUB_TOKEN not set"
+    echo "Generate a token at: https://github.com/settings/tokens"
+    echo "Then run: export GITHUB_TOKEN='ghp_your_token_here'"
+    exit 1
+fi
+
+# Function for authenticated GitHub downloads
+gh_download() {
+    local url="$1"
+    local output="$2"
+    curl -H "Authorization: token $GITHUB_TOKEN" -L -o "$output" "$url"
+}
 
 # Capture the start time (example)
 START_TIME=$(date +%s)
@@ -286,14 +303,14 @@ echo "Install Bitcoind"
 echo "################################################################################"
 
 # Download and extract Bitcoin Core tarball
-curl -L -o "bitcoin-27.0-aarch64-linux-gnu.tar.gz" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/main/bitcoin-27.0-aarch64-linux-gnu.tar.gz" && sudo tar -xzvf bitcoin-27.0-aarch64-linux-gnu.tar.gz
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/main/bitcoin-27.0-aarch64-linux-gnu.tar.gz" "bitcoin-27.0-aarch64-linux-gnu.tar.gz" && sudo tar -xzvf bitcoin-27.0-aarch64-linux-gnu.tar.gz
 
 # Move Bitcoin binaries to /usr/local/bin
 sudo mv bitcoin-27.0/bin/* /usr/local/bin/
 
 # Create data directory on /mnt/hdd and download bitcoin.conf into it
 mkdir -p /mnt/hdd/.bitcoin
-curl -L -o "/mnt/hdd/.bitcoin/bitcoin.conf" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/bitcoin.conf"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/bitcoin.conf" "/mnt/hdd/.bitcoin/bitcoin.conf"
 
 # Create symlink for default Bitcoin data directory
 ln -s /mnt/hdd/.bitcoin ~/.bitcoin
@@ -469,9 +486,9 @@ echo "Web Interface"
 echo "################################################################################"
 
 sudo apt install php -y
-curl -L -o "/var/www/html/index.php" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/index.php"
-curl -L -o "/var/www/html/miner.php" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/miner.php"
-curl -L -o "/var/www/html/favicon.ico" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/favicon.ico"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/index.php" "/var/www/html/index.php"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/miner.php" "/var/www/html/miner.php"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/favicon.ico" "/var/www/html/favicon.ico"
 
 log_message "Bitcoin Install successful"
 echo "✅ Bitcoin Install successful"
@@ -504,6 +521,181 @@ sudo chmod a+x /usr/local/bin/speedtest-cli
 
 log_message "Install of speedtest-cli successful"
 echo "✅ Install of speedtest-cli successful"
+
+echo "################################################################################"
+echo "Install WiFi Hotspot (hostapd, dnsmasq, redsocks)"
+echo "################################################################################"
+
+# Install required packages for WiFi hotspot
+sudo -E apt install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
+    hostapd dnsmasq redsocks iw
+
+# Stop and disable default services (we manage them manually)
+sudo systemctl stop hostapd 2>/dev/null || true
+sudo systemctl stop dnsmasq 2>/dev/null || true
+sudo systemctl disable hostapd 2>/dev/null || true
+sudo systemctl disable dnsmasq 2>/dev/null || true
+
+# Create hotspot scripts directory
+sudo mkdir -p /etc/btcloto
+
+# Download hotspot scripts from repo
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/main/scripts/hotspot-start.sh" "/usr/local/bin/hotspot-start.sh"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/main/scripts/hotspot-stop.sh" "/usr/local/bin/hotspot-stop.sh"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/main/scripts/hotspot-check-uplink.sh" "/usr/local/bin/hotspot-check-uplink.sh"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/main/configs/hotspot.conf.default" "/etc/btcloto/hotspot.conf"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/main/hotspot.service" "/etc/systemd/system/hotspot.service"
+
+# Make scripts executable
+sudo chmod +x /usr/local/bin/hotspot-start.sh
+sudo chmod +x /usr/local/bin/hotspot-stop.sh
+sudo chmod +x /usr/local/bin/hotspot-check-uplink.sh
+
+# Reload systemd (but don't enable hotspot by default)
+sudo systemctl daemon-reload
+
+log_message "WiFi Hotspot installation successful"
+echo "✅ WiFi Hotspot installation successful"
+
+echo "################################################################################"
+echo "Install VPN Clients (Hysteria, Xray, Shadowsocks, tun2socks)"
+echo "################################################################################"
+
+# Install shadowsocks-libev (for Outline VPN)
+sudo -E apt install -y shadowsocks-libev
+
+# Create config directories
+sudo mkdir -p /etc/hysteria
+sudo mkdir -p /usr/local/etc/xray
+sudo mkdir -p /etc/shadowsocks-libev
+
+# Install tun2socks (for routing hotspot traffic through SOCKS proxies)
+echo "Installing tun2socks..."
+TUN2SOCKS_VERSION="2.5.2"
+TUN2SOCKS_URL="https://github.com/xjasonlyu/tun2socks/releases/download/v${TUN2SOCKS_VERSION}/tun2socks-linux-arm64.zip"
+curl -L -o /tmp/tun2socks.zip "$TUN2SOCKS_URL"
+unzip -o /tmp/tun2socks.zip -d /tmp/
+sudo mv /tmp/tun2socks-linux-arm64 /usr/local/bin/tun2socks
+sudo chmod +x /usr/local/bin/tun2socks
+rm /tmp/tun2socks.zip
+
+# Install Hysteria2 client
+echo "Installing Hysteria2..."
+bash -c "$(curl -fsSL https://get.hy2.sh/)" || {
+    # Fallback: manual install
+    HYSTERIA_URL="https://github.com/apernet/hysteria/releases/latest/download/hysteria-linux-arm64"
+    sudo curl -L -o /usr/local/bin/hysteria "$HYSTERIA_URL"
+    sudo chmod +x /usr/local/bin/hysteria
+}
+
+# Install Xray
+echo "Installing Xray..."
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install || {
+    # Fallback: manual install
+    XRAY_VERSION="1.8.24"
+    XRAY_URL="https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-linux-arm64-v8a.zip"
+    curl -L -o /tmp/xray.zip "$XRAY_URL"
+    unzip -o /tmp/xray.zip -d /tmp/xray/
+    sudo mv /tmp/xray/xray /usr/local/bin/xray
+    sudo chmod +x /usr/local/bin/xray
+    rm -rf /tmp/xray /tmp/xray.zip
+}
+
+# Download default client configs
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/dev/configs/hysteria-client.yaml" "/etc/hysteria/config.yaml"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/dev/configs/xray-client.json" "/usr/local/etc/xray/config.json"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/dev/configs/outline-client.json" "/etc/shadowsocks-libev/outline.json"
+
+# Fix permissions
+sudo chmod 644 /etc/hysteria/config.yaml
+sudo chmod 644 /usr/local/etc/xray/config.json
+sudo chmod 644 /etc/shadowsocks-libev/outline.json
+
+# Create systemd services for VPN clients
+cat << 'EOF' | sudo tee /etc/systemd/system/hysteria-client.service
+[Unit]
+Description=Hysteria2 Client
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/hysteria -c /etc/hysteria/config.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat << 'EOF' | sudo tee /etc/systemd/system/outline.service
+[Unit]
+Description=Outline VPN Client (Shadowsocks)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ss-local -c /etc/shadowsocks-libev/outline.json
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Download vpn-diag diagnostic script
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/dev/scripts/vpn-diag.sh" "/usr/local/bin/vpn-diag"
+sudo chmod +x /usr/local/bin/vpn-diag
+
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Enable VPN services (but don't start - user configures first)
+sudo systemctl enable hysteria-client 2>/dev/null || true
+sudo systemctl enable outline 2>/dev/null || true
+sudo systemctl enable xray 2>/dev/null || true
+
+log_message "VPN Clients installation successful"
+echo "✅ VPN Clients installation successful"
+
+echo "################################################################################"
+echo "Install Connectivity Watchdog (auto-recovery from network issues)"
+echo "################################################################################"
+
+# Download connectivity watchdog script
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/dev/scripts/connectivity-watchdog.sh" "/usr/local/bin/connectivity-watchdog.sh"
+sudo chmod +x /usr/local/bin/connectivity-watchdog.sh
+
+# Create systemd service
+cat << 'EOF' | sudo tee /etc/systemd/system/connectivity-watchdog.service
+[Unit]
+Description=Connectivity Watchdog - Auto-recover from network issues
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/connectivity-watchdog.sh
+EOF
+
+# Create systemd timer (runs every 5 minutes)
+cat << 'EOF' | sudo tee /etc/systemd/system/connectivity-watchdog.timer
+[Unit]
+Description=Run connectivity watchdog every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
+EOF
+
+# Enable and start the timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now connectivity-watchdog.timer
+
+log_message "Connectivity Watchdog installation successful"
+echo "✅ Connectivity Watchdog installation successful"
 
 echo "################################################################################"
 echo "Install watchdog"
@@ -550,8 +742,8 @@ echo "✅ Disablling BT successful"
 #echo "Install mymacchanger"
 #echo "################################################################################"
 
-#sudo wget "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/mymacchanger.py" -P /home/pi/
-#sudo wget "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/mymacchanger.service" -P /etc/systemd/system/
+#sudo wget "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/mymacchanger.py" -P /home/pi/
+#sudo wget "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/mymacchanger.service" -P /etc/systemd/system/
 #sudo chmod +x /home/pi/mymacchanger.py
 
 #log_message "Installing mymacchanger successful"
@@ -571,11 +763,11 @@ sudo pip install RPi.GPIO --break-system-packages
 sudo mkdir /home/pi/Bots/
 sudo echo "0,0" | sudo tee /home/pi/Bots/btcbalance.txt
 
-curl -L -o "script.py" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/script.py"
-curl -L -o "/home/pi/Bots/Bot.py" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/Bot.py"
-curl -L -o "/home/pi/Bots/walletcheck.py" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/walletcheck.py"
-curl -L -o "/etc/systemd/system/bot.service" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/bot.service"
-curl -L -o "/etc/systemd/system/wallet.service" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/wallet.service"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/script.py" "script.py"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/Bot.py" "/home/pi/Bots/Bot.py"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/walletcheck.py" "/home/pi/Bots/walletcheck.py"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/bot.service" "/etc/systemd/system/bot.service"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/wallet.service" "/etc/systemd/system/wallet.service"
 
 # Read the first, second and third line of the botdata.txt file
 replace_value1=$(head -n 1 botdata.txt)
@@ -617,7 +809,7 @@ echo "SSH Custom Login Splash Screen"
 echo "################################################################################"
 
 sudo rm -r /etc/motd
-curl -L -o "/etc/motd" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/motd"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/motd" "/etc/motd"
 
 log_message "Installing SSH Custom Login Splash Screen successful"
 echo "✅ Installing SSH Custom Login Splash Screen successful"
@@ -628,7 +820,7 @@ echo "##########################################################################
 
 mkdir -p /etc/update-motd.d/
 
-curl -L -o "/etc/update-motd.d/ssh-welcome" "https://raw.githubusercontent.com/micheldegeofroy/BtcLotoVpn/master/ssh-welcome"
+gh_download "https://raw.githubusercontent.com/micheldegeofroy/Lotominer/master/ssh-welcome" "/etc/update-motd.d/ssh-welcome"
 sudo chmod +x /etc/update-motd.d/ssh-welcome
 
 log_message "Installing SSH Welcome Interface successful"

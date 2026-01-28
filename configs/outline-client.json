@@ -1,0 +1,8 @@
+{
+  "server": "YOUR_SERVER",
+  "server_port": 443,
+  "password": "YOUR_PASSWORD",
+  "method": "chacha20-ietf-poly1305",
+  "local_address": "127.0.0.1",
+  "local_port": 1082
+}
